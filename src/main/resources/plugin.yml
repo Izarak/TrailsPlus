@@ -1,0 +1,12 @@
+name: TrailsPlus
+version: '${version}'
+
+main: me.izarak.trailsPlus.TrailsPlus
+api-version: '1.21'
+
+commands:
+  trailsplus:
+    description: Open your trail gui
+    usage: /trailsplus
+    permission: trailsplus.trail.player
+    aliases: [trails]
