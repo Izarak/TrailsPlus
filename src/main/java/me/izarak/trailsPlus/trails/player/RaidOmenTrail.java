@@ -1,0 +1,20 @@
+package me.izarak.trailsPlus.trails.player;
+
+import me.izarak.trailsPlus.TrailsPlus;
+import me.izarak.trailsPlus.trails.ITrailAction;
+import org.bukkit.Particle;
+import org.bukkit.entity.Player;
+
+public class RaidOmenTrail implements ITrailAction {
+
+    @Override
+    public void displayTrail(TrailsPlus main, Player player) {
+        double halfHeight = player.getHeight() / 2;
+        player.getWorld().spawnParticle(Particle.RAID_OMEN, player.getLocation().add(0, halfHeight, 0), 1, .25, halfHeight, .25);
+    }
+
+    @Override
+    public void onTick(TrailsPlus main, Player player) {
+        displayTrail(main, player);
+    }
+}

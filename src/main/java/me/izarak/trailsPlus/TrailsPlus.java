@@ -44,10 +44,19 @@ public final class TrailsPlus extends JavaPlugin {
         for (PlayerTrails value : PlayerTrails.values()) {
             value.getTrailAction().onEnable(this);
         }
+
+        for (UUID uuid : selectedPlayerTrails.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            selectedPlayerTrails.get(uuid).getTrailAction().onActivate(this, player);
+        }
     }
 
     @Override
     public void onDisable() {
+        for (UUID uuid : selectedPlayerTrails.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            selectedPlayerTrails.get(uuid).getTrailAction().onDeactivate(this, player);
+        }
         for (PlayerTrails value : PlayerTrails.values()) {
             value.getTrailAction().onDisable(this);
         }
@@ -83,8 +92,6 @@ public final class TrailsPlus extends JavaPlugin {
             }
             selectedPlayerTrails.put(id, trail);
         }
-
-
         return trail;
     }
 

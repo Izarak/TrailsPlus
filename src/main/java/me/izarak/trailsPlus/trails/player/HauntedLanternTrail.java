@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Lantern;
 import org.bukkit.entity.BlockDisplay;
@@ -15,6 +16,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.AxisAngle4f;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.util.HashMap;
@@ -27,13 +29,6 @@ public class HauntedLanternTrail implements ITrailAction {
 
     @Override
     public void displayTrail(TrailsPlus main, Player player) {
-    }
-
-    @Override
-    public void onDisable(TrailsPlus main) {
-        for (Player player : playerHauntedBlockMap.keySet()) {
-            onDeactivate(main, player);
-        }
     }
 
     final double slowRadius = Math.pow(4, 2),
@@ -85,8 +80,12 @@ public class HauntedLanternTrail implements ITrailAction {
 
     @Override
     public void onDeactivate(TrailsPlus main, Player player) {
-        if (playerHauntedBlockMap.containsKey(player))
-            playerHauntedBlockMap.remove(player).display.remove();
+        if (playerHauntedBlockMap.containsKey(player)) {
+            HauntedBlock hauntedBlock = playerHauntedBlockMap.remove(player);
+            hauntedBlock.display.remove();
+            if (hauntedBlock.lastLightBlock != null)
+                hauntedBlock.lastLightBlock.setBlockData(hauntedBlock.lastLightBlockData);
+        }
     }
 
     public class HauntedBlock {
@@ -96,20 +95,53 @@ public class HauntedLanternTrail implements ITrailAction {
         private Location target;
         private Vector offset = new Vector(0, 0, 0);
 
+        private float currentRotation = ThreadLocalRandom.current().nextFloat(360),
+                rotationSpeed = ThreadLocalRandom.current().nextFloat(5, 10);
+
         public HauntedBlock(Player player, BlockData data) {
             this.player = player;
+            if (ThreadLocalRandom.current().nextBoolean())
+                rotationSpeed *= -1;
             target = player.getEyeLocation();
-            target.setYaw(0);
+            target.setYaw(currentRotation);
             target.setPitch(0);
             display = player.getWorld().spawn(target, BlockDisplay.class, blockDisplay -> {
                 blockDisplay.setBlock(data);
-                blockDisplay.setTransformation(new Transformation(new Vector3f(-.5f, -.5f, -.5f), new AxisAngle4f(), new Vector3f(1, 1, 1), new AxisAngle4f()));
+                blockDisplay.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(1, 1, 1), new AxisAngle4f(0, 0, 1, 0)));
                 blockDisplay.setTeleportDuration(5);
+                blockDisplay.setInterpolationDuration(5);
             });
             randomOffset();
         }
 
+        private Block lastLightBlock;
+        private BlockData lastLightBlockData;
+
         public void moveTowardsTarget(double speed, boolean now) {
+            if (lastLightBlock != null && lastLightBlockData != null) {
+                lastLightBlock.setBlockData(lastLightBlockData);
+                lastLightBlock = null;
+                lastLightBlockData = null;
+            }
+
+            if (display.getLocation().getBlock().getType().isAir()) {
+                lastLightBlock = display.getLocation().getBlock();
+                lastLightBlockData = lastLightBlock.getBlockData();
+                lastLightBlock.setType(Material.LIGHT);
+            }
+
+            currentRotation += rotationSpeed;
+
+            float angleInRadians = (float) Math.toRadians(currentRotation);
+
+            Matrix4f matrix = new Matrix4f()
+                    .translation(0f, 0f, 0f)                      // 3. Final position offset
+                    .rotateY(angleInRadians)                      // 2. Rotate around the Y-axis
+                    .translate(-0.5f, -0.5f, -0.5f)               // 1. Move pivot from corner to center
+                    .scale(1f, 1f, 1f);                           // 0. Apply size scaling
+
+            display.setTransformationMatrix(matrix);
+
             Vector direction = target.toVector().subtract(display.getLocation().toVector()).normalize();
             Location loc = (now ? target : display.getLocation().add(direction.multiply(speed)));
             if (now)

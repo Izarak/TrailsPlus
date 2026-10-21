@@ -74,9 +74,9 @@ public class PlayerTrailEvents implements Listener {
         trail.getTrailAction().onMove(main, e);
     }
 
-    @EventHandler (priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPlayerAttack(PlayerInteractEvent e) {
-        if (e.getAction() != Action.LEFT_CLICK_AIR && e.getAction() != Action.LEFT_CLICK_BLOCK)
+    @EventHandler
+    public void onPlayerAnimation(PlayerAnimationEvent e) {
+        if (e.getAnimationType() != PlayerAnimationType.ARM_SWING)
             return;
         Player player = e.getPlayer();
         PlayerTrails trail = main.getPlayerTrail(player);
