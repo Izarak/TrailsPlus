@@ -1,7 +1,7 @@
 package me.izarak.trailsPlus.trails.player;
 
 import me.izarak.trailsPlus.TrailsPlus;
-import me.izarak.trailsPlus.trails.ITrailAction;
+import me.izarak.trailsPlus.trails.IPlayerTrailAction;
 import org.bukkit.Color;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class FallLeavesTrail implements ITrailAction {
+public class FallLeavesTrail implements IPlayerTrailAction {
 
     List<Color> colors = List.of(
             Color.ORANGE,

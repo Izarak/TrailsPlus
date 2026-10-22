@@ -1,7 +1,7 @@
 package me.izarak.trailsPlus.trails.player;
 
 import me.izarak.trailsPlus.TrailsPlus;
-import me.izarak.trailsPlus.trails.ITrailAction;
+import me.izarak.trailsPlus.trails.IPlayerTrailAction;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class SpitTrail implements ITrailAction {
+public class SpitTrail implements IPlayerTrailAction {
 
     private final Map<UUID, Long> lastSpit = new HashMap<>();
 

@@ -1,14 +1,14 @@
 package me.izarak.trailsPlus.trails.player;
 
 import me.izarak.trailsPlus.TrailsPlus;
-import me.izarak.trailsPlus.trails.ITrailAction;
+import me.izarak.trailsPlus.trails.IPlayerTrailAction;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-public class FlameStepTrail implements ITrailAction {
+public class FlameStepTrail implements IPlayerTrailAction {
     @Override
     public void displayTrail(TrailsPlus main, Player player) {
         if (player.getLocation().subtract(0, 0.05, 0).getBlock().getType().isAir())

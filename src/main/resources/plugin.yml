@@ -6,7 +6,12 @@ api-version: '1.21'
 
 commands:
   trailsplus:
-    description: Open your trail gui
-    usage: /trailsplus
+    description: Toggle player trails.
+    usage: /trailsplus <trail>
     permission: trailsplus.trail.player
-    aliases: [trails]
+    aliases: [trails, trail]
+  projectiletrails:
+    description: Toggle projectile trails.
+    usage: /projectiletrails <trail>
+    permission: trailsplus.trail.projectile
+    aliases: [ptrails, ptrail]

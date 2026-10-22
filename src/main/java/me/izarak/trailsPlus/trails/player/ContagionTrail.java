@@ -1,7 +1,7 @@
 package me.izarak.trailsPlus.trails.player;
 
 import me.izarak.trailsPlus.TrailsPlus;
-import me.izarak.trailsPlus.trails.ITrailAction;
+import me.izarak.trailsPlus.trails.IPlayerTrailAction;
 import org.bukkit.Color;
 import org.bukkit.Particle;
 import org.bukkit.entity.Entity;
@@ -13,7 +13,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ContagionTrail implements ITrailAction {
+public class ContagionTrail implements IPlayerTrailAction {
 
     final double range = 1.5;
 

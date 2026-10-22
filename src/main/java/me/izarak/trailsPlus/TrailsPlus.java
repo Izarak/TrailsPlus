@@ -1,7 +1,14 @@
 package me.izarak.trailsPlus;
 
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import me.izarak.trailsPlus.commands.ProjectilesCommand;
 import me.izarak.trailsPlus.commands.TrailsCommand;
 import me.izarak.trailsPlus.events.PlayerTrailEvents;
+import me.izarak.trailsPlus.events.ProjectileTrailEvents;
+import me.izarak.trailsPlus.events.UniversalEvents;
+import me.izarak.trailsPlus.trails.player.PlayerTrails;
+import me.izarak.trailsPlus.trails.projectile.ProjectileTrails;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.PluginCommand;
@@ -10,12 +17,12 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -24,7 +31,8 @@ public final class TrailsPlus extends JavaPlugin {
     final private File savedTrailsFile = new File(getDataFolder() + "/saved_trails.yml");
     private YamlConfiguration savedTrailsYaml;
 
-    final private Map<UUID, PlayerTrails> selectedPlayerTrails = new HashMap<>();
+    final private Multimap<UUID, PlayerTrails> selectedPlayerTrails = MultimapBuilder.hashKeys().arrayListValues().build();
+    final private Multimap<UUID, ProjectileTrails> selectedProjectileTrails = MultimapBuilder.hashKeys().arrayListValues().build();
 
     @Override
     public void onEnable() {
@@ -40,14 +48,8 @@ public final class TrailsPlus extends JavaPlugin {
 
         registerEvents();
         registerCommands();
-
         for (PlayerTrails value : PlayerTrails.values()) {
             value.getTrailAction().onEnable(this);
-        }
-
-        for (UUID uuid : selectedPlayerTrails.keySet()) {
-            Player player = Bukkit.getPlayer(uuid);
-            selectedPlayerTrails.get(uuid).getTrailAction().onActivate(this, player);
         }
     }
 
@@ -55,7 +57,11 @@ public final class TrailsPlus extends JavaPlugin {
     public void onDisable() {
         for (UUID uuid : selectedPlayerTrails.keySet()) {
             Player player = Bukkit.getPlayer(uuid);
-            selectedPlayerTrails.get(uuid).getTrailAction().onDeactivate(this, player);
+            selectedPlayerTrails.get(uuid).forEach(trail -> trail.getTrailAction().onDeactivate(this, player));
+        }
+        for (UUID uuid : selectedProjectileTrails.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            selectedProjectileTrails.get(uuid).forEach(trail -> trail.getTrailAction().onDeactivate(this, player));
         }
         for (PlayerTrails value : PlayerTrails.values()) {
             value.getTrailAction().onDisable(this);
@@ -64,50 +70,88 @@ public final class TrailsPlus extends JavaPlugin {
         saveSelectedTrails();
     }
 
-    public void setPlayerTrail(UUID id, PlayerTrails trail) {
-        if (selectedPlayerTrails.containsKey(id))
-            selectedPlayerTrails.get(id).getTrailAction().onDeactivate(this, Bukkit.getPlayer(id));
-        if (trail == PlayerTrails.NONE || trail == null) {
-            selectedPlayerTrails.put(id, PlayerTrails.NONE);
-            return;
+    public boolean setProjectileTrail(UUID id, ProjectileTrails trail) {
+        if (!selectedProjectileTrails.containsKey(id)) {
+            selectedProjectileTrails.put(id, trail);
+            return true;
         }
-        selectedPlayerTrails.put(id, trail);
-        trail.getTrailAction().onActivate(this, Bukkit.getPlayer(id));
+
+        Collection<ProjectileTrails> trails = selectedProjectileTrails.get(id);
+
+        if (trails.contains(trail)) {
+            removeProjectileTrail(id, trail);
+            return false;
+        } else {
+            selectedProjectileTrails.put(id, trail);
+            trail.getTrailAction().onActivate(this, Bukkit.getPlayer(id));
+            return true;
+        }
     }
 
-    public void setPlayerTrail(Player player, PlayerTrails trail) {
-        setPlayerTrail(player.getUniqueId(), trail);
+    public boolean setProjectileTrail(Player player, ProjectileTrails trail) {
+        return setProjectileTrail(player.getUniqueId(), trail);
     }
 
-    @Nullable
-    public PlayerTrails getPlayerTrail(UUID id) {
-        PlayerTrails trail = selectedPlayerTrails.get(id);
-        if (trail == null) {
-            if (!savedTrailsYaml.isSet(id.toString() + ".Player Trail"))
-                return null;
-            try {
-                trail = PlayerTrails.valueOf(savedTrailsYaml.getString(id.toString() + ".Player Trail"));
-            } catch (IllegalArgumentException exception) {
-                return null;
-            }
+    public void removeProjectileTrail(UUID id, ProjectileTrails trail) {
+        selectedProjectileTrails.remove(id, trail);
+        trail.getTrailAction().onDeactivate(this, Bukkit.getPlayer(id));
+    }
+
+    public void removeProjectileTrail(Player player, ProjectileTrails trail) {
+        removeProjectileTrail(player.getUniqueId(), trail);
+    }
+
+    public Collection<ProjectileTrails> getProjectileTrails(UUID id) {
+        return selectedProjectileTrails.get(id);
+    }
+
+    public Collection<ProjectileTrails> getProjectileTrails(Player player) {
+        return getProjectileTrails(player.getUniqueId());
+    }
+
+    /**
+     * @param id
+     * @param trail
+     * @return True if the trail is added. False if trail is removed.
+     */
+    public boolean setPlayerTrail(UUID id, PlayerTrails trail) {
+        if (!selectedPlayerTrails.containsKey(id)) {
             selectedPlayerTrails.put(id, trail);
+            trail.getTrailAction().onActivate(this, Bukkit.getPlayer(id));
+            return true;
         }
-        return trail;
+
+        Collection<PlayerTrails> playerTrailsList = selectedPlayerTrails.get(id);
+
+        if (playerTrailsList.contains(trail)) {
+            removePlayerTrail(id, trail);
+            return false;
+        } else {
+            selectedPlayerTrails.put(id, trail);
+            trail.getTrailAction().onActivate(this, Bukkit.getPlayer(id));
+            return true;
+        }
     }
 
-    @Nullable
-    public PlayerTrails getPlayerTrail(Player player) {
-        return getPlayerTrail(player.getUniqueId());
+    public boolean setPlayerTrail(Player player, PlayerTrails trail) {
+        return setPlayerTrail(player.getUniqueId(), trail);
     }
 
-    @Nullable
-    public PlayerTrails removePlayerTrail(UUID id) {
-        return selectedPlayerTrails.remove(id);
+    public Collection<PlayerTrails> getPlayerTrails(UUID id) {
+        return selectedPlayerTrails.get(id);
     }
 
-    @Nullable
-    public PlayerTrails removePlayerTrail(Player player) {
-        return removePlayerTrail(player.getUniqueId());
+    public Collection<PlayerTrails> getPlayerTrails(Player player) {
+        return getPlayerTrails(player.getUniqueId());
+    }
+
+    public void removePlayerTrail(UUID id, PlayerTrails trail) {
+        selectedPlayerTrails.remove(id, trail);
+        trail.getTrailAction().onDeactivate(this, Bukkit.getPlayer(id));
+    }
+
+    public void removePlayerTrail(Player player, PlayerTrails trail) {
+        removePlayerTrail(player.getUniqueId(), trail);
     }
 
     public File getSavedTrailsFile() {
@@ -118,8 +162,42 @@ public final class TrailsPlus extends JavaPlugin {
         return savedTrailsYaml;
     }
 
-    public void saveSelectedTrails() {
-        selectedPlayerTrails.forEach((k, v) -> savedTrailsYaml.set(k.toString() + ".Player Trail", v != null ? v.toString() : null));
+
+    public void loadPlayerData(Player player) {
+        String id = player.getUniqueId().toString();
+        if (savedTrailsYaml.isSet(id + ".Player Trails")) {
+            for (String playerTrail : savedTrailsYaml.getStringList(id + ".Player Trails")) {
+                PlayerTrails trail = PlayerTrails.valueOf(playerTrail);
+                if (!selectedPlayerTrails.containsEntry(player.getUniqueId(), trail))
+                    selectedPlayerTrails.put(player.getUniqueId(), trail);
+            }
+        }
+        if (savedTrailsYaml.isSet(id + ".Projectile Trails")) {
+            for (String trail : savedTrailsYaml.getStringList(id + ".Projectile Trails")) {
+                ProjectileTrails projectileTrail = ProjectileTrails.valueOf(trail);
+                if (!selectedProjectileTrails.containsEntry(player.getUniqueId(), projectileTrail))
+                    selectedProjectileTrails.put(player.getUniqueId(), projectileTrail);
+            }
+
+        }
+    }
+
+    private void saveSelectedTrails() {
+        for (UUID id : selectedPlayerTrails.keySet()) {
+            List<String> list = new ArrayList<>();
+            for (PlayerTrails trail : selectedPlayerTrails.get(id)) {
+                list.add(trail.toString());
+            }
+            savedTrailsYaml.set(id.toString() + ".Player Trails", list);
+        }
+
+        for (UUID uuid : selectedProjectileTrails.keySet()) {
+            List<String> list = new ArrayList<>();
+            for (ProjectileTrails trail : selectedProjectileTrails.get(uuid)) {
+                list.add(trail.toString());
+            }
+            savedTrailsYaml.set(uuid.toString() + ".Projectile Trails", list);
+        }
 
         try {
             savedTrailsYaml.save(savedTrailsFile);
@@ -131,11 +209,14 @@ public final class TrailsPlus extends JavaPlugin {
     private void registerEvents() {
         PluginManager pm = Bukkit.getPluginManager();
 
+        pm.registerEvents(new UniversalEvents(this), this);
         pm.registerEvents(new PlayerTrailEvents(this), this);
+        pm.registerEvents(new ProjectileTrailEvents(this), this);
     }
 
     private void registerCommands() {
         registerCommand("trailsplus", new TrailsCommand(this));
+        registerCommand("projectiletrails", new ProjectilesCommand(this));
     }
 
     private void registerCommand(String command, CommandExecutor executor) {

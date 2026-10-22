@@ -1,16 +1,14 @@
 package me.izarak.trailsPlus.trails.player;
 
 import me.izarak.trailsPlus.TrailsPlus;
-import me.izarak.trailsPlus.trails.ITrailAction;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
+import me.izarak.trailsPlus.trails.IPlayerTrailAction;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Lantern;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Transformation;
@@ -23,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class HauntedLanternTrail implements ITrailAction {
+public class HauntedLanternTrail implements IPlayerTrailAction {
 
     private final Map<Player, HauntedBlock> playerHauntedBlockMap = new HashMap<>();
 
@@ -38,11 +36,19 @@ public class HauntedLanternTrail implements ITrailAction {
     @Override
     public void onTick(TrailsPlus main, Player player) {
         HauntedBlock hauntedBlock = playerHauntedBlockMap.get(player);
+        if (hauntedBlock == null)
+            return;
         Location loc = player.getEyeLocation().add(-.5, 1.1, -.5);
         hauntedBlock.setTarget(loc);
 
-        double distance = loc.distanceSquared(hauntedBlock.getDisplay().getLocation()),
+        double distance,
                 speed;
+
+        try {
+            distance = loc.distanceSquared(hauntedBlock.getDisplay().getLocation());
+        } catch (IllegalArgumentException exception) {
+            return; // If the player is in the void(teleporting)
+        }
 
         if (distance < slowRadius) {
             speed = maxSpeed * (distance / slowRadius);
@@ -59,14 +65,16 @@ public class HauntedLanternTrail implements ITrailAction {
     public void onTeleport(TrailsPlus main, PlayerTeleportEvent e) {
         Player player = e.getPlayer();
         HauntedBlock hauntedBlock = playerHauntedBlockMap.get(player);
-
         new BukkitRunnable() {
             @Override
             public void run() {
-                hauntedBlock.setTarget(player.getEyeLocation());
-                hauntedBlock.moveTowardsTarget(1, true);
+                if (isPlayerReadyInWorld(player)) {
+                    hauntedBlock.setTarget(player.getEyeLocation());
+                    hauntedBlock.moveTowardsTarget(1, true);
+                    cancel();
+                }
             }
-        }.runTaskLater(main, 20);
+        }.runTaskTimer(main, 20, 5);
     }
 
     @Override
@@ -85,7 +93,29 @@ public class HauntedLanternTrail implements ITrailAction {
             hauntedBlock.display.remove();
             if (hauntedBlock.lastLightBlock != null)
                 hauntedBlock.lastLightBlock.setBlockData(hauntedBlock.lastLightBlockData);
+            playerHauntedBlockMap.remove(player);
         }
+    }
+
+    @Override
+    public void onQuit(TrailsPlus main, PlayerQuitEvent e) {
+        Player player = e.getPlayer();
+        onDeactivate(main, player);
+    }
+
+    private boolean isPlayerReadyInWorld(Player player) {
+        Location loc = player.getLocation();
+        World world = loc.getWorld();
+        if (world == null)
+            return false;
+
+        int chunkX = loc.getBlockX() >> 4;
+        int chunkZ = loc.getBlockZ() >> 4;
+
+        if (!world.isChunkLoaded(chunkX, chunkZ))
+            return false;
+
+        return world.getChunkAt(chunkX, chunkZ).isEntitiesLoaded();
     }
 
     public class HauntedBlock {
@@ -129,6 +159,8 @@ public class HauntedLanternTrail implements ITrailAction {
                 lastLightBlockData = lastLightBlock.getBlockData();
                 lastLightBlock.setType(Material.LIGHT);
             }
+
+            rotationSpeed = Math.max(-10, Math.min(10, rotationSpeed + ThreadLocalRandom.current().nextFloat(-4, 4)));
 
             currentRotation += rotationSpeed;
 

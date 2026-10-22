@@ -1,15 +1,17 @@
 package me.izarak.trailsPlus.commands;
 
-import me.izarak.trailsPlus.PlayerTrails;
 import me.izarak.trailsPlus.TrailsPlus;
+import me.izarak.trailsPlus.trails.player.PlayerTrails;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+import org.bukkit.permissions.PermissionAttachmentInfo;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class TrailsCommand implements TabExecutor {
@@ -22,6 +24,7 @@ public class TrailsCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
+        PlayerTrails trail;
         switch (strings.length) {
             case 0:
                 // TODO Open the trail gui.
@@ -31,14 +34,44 @@ public class TrailsCommand implements TabExecutor {
                     commandSender.sendMessage(ChatColor.RED + "You must be a player to use this command!");
                     return true;
                 }
-                PlayerTrails trail;
+
+                if (strings[0].equalsIgnoreCase("clear")) {
+                    List<PlayerTrails> playerTrails = main.getPlayerTrails(player).stream().toList();
+                    for (int size = playerTrails.size(); size > 0; size--) {
+                        main.removePlayerTrail(player, playerTrails.get(size - 1));
+                    }
+                    return true;
+                }
+
                 try {
                     trail = PlayerTrails.valueOf(strings[0]);
                 } catch (IllegalArgumentException exception) {
                     player.sendMessage(ChatColor.RED + "Unknown trail: " + strings[0]);
                     break;
                 }
-                main.setPlayerTrail(player, trail);
+
+                Collection<PlayerTrails> playerTrails = main.getPlayerTrails(player);
+
+                int maxTrails = getMaxTrails(player);
+
+                if (maxTrails != -1 && playerTrails.size() >= maxTrails && !playerTrails.contains(trail)) {
+                    player.sendMessage(ChatColor.RED + "You have too many trails equipped!");
+                    boolean color = true;
+                    for (PlayerTrails playerTrail : playerTrails) {
+                        player.sendMessage((color ? ChatColor.GRAY : ChatColor.DARK_GRAY) + playerTrail.toString());
+                        color = !color;
+                    }
+                    return true;
+                }
+
+                String message;
+
+                if (main.setPlayerTrail(player, trail))
+                    message = ChatColor.GREEN + "Trail has been activated!";
+                else
+                    message = ChatColor.RED + "Trail has been deactivated!";
+
+                commandSender.sendMessage(message);
                 break;
             case 2:
                 try {
@@ -64,6 +97,7 @@ public class TrailsCommand implements TabExecutor {
 
         switch (strings.length) {
             case 1:
+                list.add("clear");
                 for (PlayerTrails value : PlayerTrails.values()) {
                     if (value.toString().toLowerCase().contains(strings[0]))
                         list.add(value.toString());
@@ -81,4 +115,27 @@ public class TrailsCommand implements TabExecutor {
 
         return list;
     }
+
+    /**
+     * @param player
+     * @return Returns -1 for infinite amount.
+     */
+    private int getMaxTrails(Player player) {
+        int highestValue = 0;
+        if (player.isOp())
+            return -1;
+        for (PermissionAttachmentInfo effectivePermission : player.getEffectivePermissions()) {
+            String permissionString = effectivePermission.getPermission().toLowerCase();
+            try {
+                int value = Integer.parseInt(permissionString.substring("trailsplus.trail.player.".length()));
+                if (value < 0)
+                    return -1;
+                if (value > highestValue)
+                    highestValue = value;
+            } catch (Exception ignored) {
+            }
+        }
+        return highestValue;
+    }
+
 }

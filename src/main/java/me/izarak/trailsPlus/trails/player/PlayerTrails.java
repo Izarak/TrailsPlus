@@ -1,11 +1,8 @@
-package me.izarak.trailsPlus;
+package me.izarak.trailsPlus.trails.player;
 
-import me.izarak.trailsPlus.trails.EmptyTrailAction;
-import me.izarak.trailsPlus.trails.ITrailAction;
-import me.izarak.trailsPlus.trails.player.*;
+import me.izarak.trailsPlus.trails.IPlayerTrailAction;
 
 public enum PlayerTrails {
-    NONE(new EmptyTrailAction()),
     FLAME_STEP(new FlameStepTrail()),
     HEARTS(new HeartsTrail()),
     RAIN_CLOUD(new RainCloudTrail()),
@@ -24,13 +21,13 @@ public enum PlayerTrails {
     // October 2026
     HAUNTED_LANTERN(new HauntedLanternTrail());
 
-    final ITrailAction trailAction;
+    final IPlayerTrailAction trailAction;
 
-    PlayerTrails(ITrailAction trailAction) {
+    PlayerTrails(IPlayerTrailAction trailAction) {
         this.trailAction = trailAction;
     }
 
-    public ITrailAction getTrailAction() {
+    public IPlayerTrailAction getTrailAction() {
         return trailAction;
     }
 }

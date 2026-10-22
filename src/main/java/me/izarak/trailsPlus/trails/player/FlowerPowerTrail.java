@@ -1,7 +1,7 @@
 package me.izarak.trailsPlus.trails.player;
 
 import me.izarak.trailsPlus.TrailsPlus;
-import me.izarak.trailsPlus.trails.ITrailAction;
+import me.izarak.trailsPlus.trails.IPlayerTrailAction;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class FlowerPowerTrail implements ITrailAction {
+public class FlowerPowerTrail implements IPlayerTrailAction {
 
     private final Set<BlockDisplay> displays = new HashSet<>();
 
@@ -109,7 +109,8 @@ public class FlowerPowerTrail implements ITrailAction {
             startingLocation = location;
             display = location.getWorld().spawn(location, BlockDisplay.class, blockDisplay -> {
                 blockDisplay.setBlock(Bukkit.createBlockData(flowerMaterials.get(ThreadLocalRandom.current().nextInt(flowerMaterials.size()))));
-                blockDisplay.setTransformation(new Transformation(new Vector3f(-.5f, -.5f, -.5f), new AxisAngle4f(), new Vector3f(1, 1, 1), new AxisAngle4f()));
+                float scale = ThreadLocalRandom.current().nextFloat(.3f, .8f);
+                blockDisplay.setTransformation(new Transformation(new Vector3f(-.5f, -.5f, -.5f), new AxisAngle4f(), new Vector3f(scale, scale, scale), new AxisAngle4f()));
                 blockDisplay.setTeleportDuration(5);
                 blockDisplay.setBrightness(new Display.Brightness(location.clone().add(0, .1, 0).getBlock().getLightFromBlocks(), location.clone().add(0, .1, 0).getBlock().getLightFromSky()));
             });

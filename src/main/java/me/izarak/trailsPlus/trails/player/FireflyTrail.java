@@ -1,11 +1,11 @@
 package me.izarak.trailsPlus.trails.player;
 
 import me.izarak.trailsPlus.TrailsPlus;
-import me.izarak.trailsPlus.trails.ITrailAction;
+import me.izarak.trailsPlus.trails.IPlayerTrailAction;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 
-public class FireflyTrail implements ITrailAction {
+public class FireflyTrail implements IPlayerTrailAction {
 
     @Override
     public void displayTrail(TrailsPlus main, Player player) {
