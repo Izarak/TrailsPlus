@@ -19,7 +19,8 @@ public enum ProjectileTrails {
     ARROW_SILVER(new ArrowSilverTrail()),
     ARROW_TEAL(new ArrowTealTrail()),
     ARROW_YELLOW(new ArrowYellowTrail()),
-    BLOCK_PARTICLE_SPRAY(new BlockParticleSprayTrail());
+    BLOCK_PARTICLE_SPRAY(new BlockParticleSprayTrail()),
+    BLOOD_HELIX(new BloodHelix());
 
     final IProjectileTrailAction action;
 

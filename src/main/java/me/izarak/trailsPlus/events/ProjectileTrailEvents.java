@@ -51,7 +51,10 @@ public class ProjectileTrailEvents implements Listener {
                     Set<ProjectileTrails> projectileTrailsList = new HashSet<>();
 
                     for (String str : pdc.get(attachedTrailsKey, PersistentDataType.STRING).split(",")) {
-                        projectileTrailsList.add(ProjectileTrails.valueOf(str));
+                        try {
+                            projectileTrailsList.add(ProjectileTrails.valueOf(str));
+                        } catch (IllegalArgumentException ignored) {
+                        }
                     }
 
                     projectileTrailsList.forEach(trail -> trail.getTrailAction().onProjectileTick(main, projectile));
@@ -72,7 +75,10 @@ public class ProjectileTrailEvents implements Listener {
         if (!(projectile.getShooter() instanceof Player player))
             return;
         List<String> trailNames = new ArrayList<>();
-        main.getProjectileTrails(player).forEach(trail -> {
+        Collection<ProjectileTrails> trails = main.getProjectileTrails(player);
+        if (trails.isEmpty())
+            return;
+        trails.forEach(trail -> {
             trail.getTrailAction().onLaunch(main, e);
             trailNames.add(trail.toString());
         });
@@ -96,7 +102,5 @@ public class ProjectileTrailEvents implements Listener {
 
         main.getProjectileTrails(offlinePlayer.getPlayer()).forEach(trail -> trail.getTrailAction().onProjectileHit(main, e));
     }
-
-
 
 }
